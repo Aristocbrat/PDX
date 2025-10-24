@@ -20,12 +20,18 @@ const FormFour = ({
   const contractType = searchParams.get("contractType") ?? "";
   const { finalize, sendingForm } = useFinalizeContract();
   const [hasChanges, setHasChanges] = useState(false);
+
+  // Currency from localStorage
+  const currencyCode = localStorage.getItem("userCurrencyCode") || "USD";
+  const locale = currencyCode === "NGN" ? "en-NG" : "en-US";
+
   const getCompletionCount = () => {
     const count = sessionStorage.getItem("contractCompletionCount");
     return count ? parseInt(count) : 0;
   };
 
   const [completionCount, setCompletionCount] = useState(getCompletionCount());
+
   const userInfo = [
     {
       title: "Contract Type",
@@ -33,48 +39,42 @@ const FormFour = ({
     },
     {
       title: "Start Date",
-      data: savedState.startDate ? formatDate(savedState.startDate) : "-",
+      data: savedState?.startDate ? formatDate(savedState.startDate) : "-",
     },
     {
       title: "End Date",
-      data: savedState.endDate ? formatDate(savedState.endDate) : "-",
+      data: savedState?.endDate ? formatDate(savedState.endDate) : "-",
     },
     {
       title: "Job Title",
-      data: savedState.roleTitle ?? "-",
+      data: savedState?.roleTitle ?? "-",
     },
     {
       title: "Seniority Level",
-      data: savedState.seniorityLevel ?? "-",
+      data: savedState?.seniorityLevel ?? "-",
     },
     {
       title: "Scope of Work",
-      data: savedState.scopeOfWork ?? "-",
+      data: savedState?.scopeOfWork ?? "-",
     },
     {
       title: "Payment Rate",
       data:
-        formatCurrency(
-          savedState.paymentRate,
-          savedState.country === "Nigeria" ? "NGN" : "USD",
-          savedState.country === "Nigeria" ? "en-NG" : "en-US"
-        ) ?? null,
+        formatCurrency(savedState?.paymentRate || 0, currencyCode, locale) ?? "-",
     },
     {
       title: "Payment Frequency",
-      data: savedState.paymentFrequency ?? null,
+      data: savedState?.paymentFrequency ?? "-",
     },
   ];
 
   const sendFinalForm = () => {
-    // For the final form, we typically want to always submit when sending
     finalize(savedState, {
       onSuccess: () => {
-        // nextStep();
+        // nextStep(); // Uncomment if you want to auto-advance
       },
     });
     sessionStorage.removeItem("currentStep");
-    // Increment the completion count
     const newCount = completionCount + 1;
     setCompletionCount(newCount);
     sessionStorage.setItem("contractCompletionCount", newCount.toString());
@@ -94,12 +94,14 @@ const FormFour = ({
           </div>
         ))}
 
-        <div className={`mb-[39px] ${signature ? "block" : "hidden"} `}>
-          <div className="w-full h-[0.5px] bg-[#0000004d]"></div>
-          <div className="mt-[39px] max-w-[100px] mx-auto">
-            {signature && <img src={signature} alt="user signature" />}
+        {signature && (
+          <div className="mb-[39px]">
+            <div className="w-full h-[0.5px] bg-[#0000004d]"></div>
+            <div className="mt-[39px] max-w-[100px] mx-auto">
+              <img src={signature} alt="user signature" />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <button
@@ -116,10 +118,7 @@ const FormFour = ({
         <div className="font-medium text-[0.6875rem] text-[#00000099] xl:text-[1.125rem]">
           {hasSignature ? "Re-Sign Contract" : "Sign Contract"}
         </div>
-
-        <div>
-          <img src={sign} alt="sign icon" />
-        </div>
+        <img src={sign} alt="sign icon" />
       </button>
 
       {hasSignature && (
