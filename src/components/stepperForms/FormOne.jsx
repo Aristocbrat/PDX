@@ -29,7 +29,7 @@ const FormOne = ({ nextStep, savedState, contractType }) => {
     clientName: Yup.string().required('Client name is required'),
     email: Yup.string().email('Invalid email').required('Email is required'),
     country: Yup.string().required('Country is required'),
-    state: Yup.string().nullable(), // State is optional
+    state: Yup.string().nullable(),
     companyName: Yup.string().required('Company name is required'),
   });
 
@@ -61,10 +61,11 @@ const FormOne = ({ nextStep, savedState, contractType }) => {
         contractType,
       };
 
-      //  Save currency and personal info
       const isNigerian = values?.country?.toLowerCase() === 'nigeria';
       localStorage.setItem('userCurrencyCode', isNigerian ? 'NGN' : 'USD');
       localStorage.setItem('userPersonalInfo', JSON.stringify(details));
+      localStorage.setItem('countryLocked', 'true');
+      localStorage.setItem('stateLocked', 'true');
 
       postForm(details, {
         onSuccess: () => {
@@ -78,22 +79,27 @@ const FormOne = ({ nextStep, savedState, contractType }) => {
   });
 
   useEffect(() => {
-    const changesDetected = Object.keys(initialValues).some(
-      (key) => formik.values[key] !== initialValues[key]
-    );
-    setHasChanges(changesDetected);
-  }, [formik.values, initialValues]);
-
-  //  Auto-fill from localStorage
-  useEffect(() => {
     const savedInfo = JSON.parse(localStorage.getItem("userPersonalInfo"));
+    const countryLocked = localStorage.getItem("countryLocked") === "true";
+    const stateLocked = localStorage.getItem("stateLocked") === "true";
+
     if (savedInfo) {
       formik.setValues((prev) => ({
         ...prev,
         ...savedInfo,
       }));
     }
+
+    if (countryLocked) setIsCountryLocked(true);
+    if (stateLocked) setIsStateLocked(true);
   }, []);
+
+  useEffect(() => {
+    const changesDetected = Object.keys(initialValues).some(
+      (key) => formik.values[key] !== initialValues[key]
+    );
+    setHasChanges(changesDetected);
+  }, [formik.values, initialValues]);
 
   const handleCountryChange = (e) => {
     const selectedIso = e.target.value;
@@ -102,7 +108,12 @@ const FormOne = ({ nextStep, savedState, contractType }) => {
       formik.setFieldValue('country', selected.name);
       queryClient.invalidateQueries(['states']);
       setSelectedCountry(selectedIso);
+
       setIsCountryLocked(true);
+      localStorage.setItem('countryLocked', 'true');
+
+      const isNigerian = selected.name.toLowerCase() === 'nigeria';
+      localStorage.setItem('userCurrencyCode', isNigerian ? 'NGN' : 'USD');
     } else {
       setSelectedCountry('');
     }
@@ -111,6 +122,7 @@ const FormOne = ({ nextStep, savedState, contractType }) => {
   const handleStateChange = (e) => {
     formik.setFieldValue('state', e.target.value);
     setIsStateLocked(true);
+    localStorage.setItem('stateLocked', 'true');
   };
   return (
     <div className='flex flex-col gap-5'>
@@ -261,4 +273,3 @@ const FormOne = ({ nextStep, savedState, contractType }) => {
 };
 
 export default FormOne;
-
