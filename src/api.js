@@ -2,33 +2,28 @@ import axios from "axios";
 
 export const baseURL = "https://pedxo-back-project.onrender.com";
 
-// Request cache - works in browser
+// Simple in-memory cache for GET requests
 const cache = new Map();
 
 const authFetch = axios.create({
   baseURL,
   headers: {
     "Content-Type": "application/json",
-    // "Accept-Encoding": "gzip, deflate, br",
   },
   timeout: 30000,
 });
 
-// Request interceptor for auth token
+// Request interceptor: adds auth token and handles caching
 authFetch.interceptors.request.use(
   (config) => {
-    // console.log('Request:', config.method?.toUpperCase(), config.url);
-
-    // Add authorization token if available
-    if (!config.headers.Authorization) {
-      const storedUser = JSON.parse(localStorage.getItem("user"));
-      const token = storedUser?.accessToken;
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+    // Attach Authorization token if available
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    const token = storedUser?.accessToken;
+    if (token && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Cache GET requests (browser-only implementation)
+    // Cache GET requests (valid for 5 minutes)
     if (config.method?.toLowerCase() === "get") {
       const cacheKey = JSON.stringify({
         url: config.url,
@@ -38,7 +33,6 @@ authFetch.interceptors.request.use(
       if (cache.has(cacheKey)) {
         const { timestamp, data } = cache.get(cacheKey);
         if (Date.now() - timestamp < 300000) {
-          // 5 minute cache
           return Promise.reject({
             response: { data },
             config,
@@ -50,17 +44,12 @@ authFetch.interceptors.request.use(
 
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor
+// Response interceptor: stores GET responses in cache and handles retries
 authFetch.interceptors.response.use(
   (response) => {
-    // console.log('Response:', response.status, response.config.url);
-
-    // Cache successful GET responses
     if (response.config.method?.toLowerCase() === "get") {
       const cacheKey = JSON.stringify({
         url: response.config.url,
@@ -89,7 +78,7 @@ authFetch.interceptors.response.use(
       console.error("Error:", error.message);
     }
 
-    // Retry logic for failed requests
+    // Retry once for non-timeout errors
     const originalRequest = error.config;
     if (error.code !== "ECONNABORTED" && !originalRequest._retry) {
       originalRequest._retry = true;

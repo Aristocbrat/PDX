@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getUserContracts } from "../api"; // from your existing api.js
 import moneybag from "../assets/svg/moneybag.svg";
 import people from "../assets/svg/people.svg";
 import telegram from "../assets/svg/telegram.svg";
@@ -11,17 +13,17 @@ import { formatCurrency } from "../utlity/helper";
 
 const Overview = () => {
   const { username } = useUser();
-  const [onboardingCount, setOnboardingCount] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-
-  // Currency state
   const [currencyCode, setCurrencyCode] = useState("USD");
   const [locale, setLocale] = useState("en-US");
 
-  // Lock currency based on stored country preference
+  const { data: contracts, isLoading } = useQuery(
+    ["user-contracts"],
+    getUserContracts
+  );
+
   useEffect(() => {
     const storedCode = localStorage.getItem("userCurrencyCode");
-
     if (storedCode === "NGN") {
       setCurrencyCode("NGN");
       setLocale("en-NG");
@@ -31,25 +33,13 @@ const Overview = () => {
     }
   }, []);
 
-  // Get contract completion count from sessionStorage
-  const getCompletionCount = () => {
-    const count = sessionStorage.getItem("contractCompletionCount");
-    return count ? parseInt(count) : 0;
-  };
-
   useEffect(() => {
-    setOnboardingCount(getCompletionCount());
-  }, []);
-
-  // Trigger animation when onboardingCount changes
-  useEffect(() => {
-    if (onboardingCount > 0) {
+    if ((contracts?.onboardingCount || 0) > 0) {
       setIsAnimating(true);
       const timer = setTimeout(() => setIsAnimating(false), 1000);
       return () => clearTimeout(timer);
     }
-  }, [onboardingCount]);
-
+  }, [contracts?.onboardingCount]);
   return (
     <section>
       <div>
@@ -69,18 +59,15 @@ const Overview = () => {
           <div className="px-[22px] pt-[21px] pb-[39px] mt-[62px] rounded-3xl overview-expense-bg flex flex-col gap-6 xl:px-[92px]">
             {/* Total Expenses */}
             <div>
-              <h2 className="font-semibold leading-normal xl:text-[27px] overview-text">
-                Total Expenses
-              </h2>
-              <p className="mb-2 text-sm font-Inter font-medium leading-normal grey-text pr-[51px] xl:text-[16px]">
+              <h2 className="font-semibold xl:text-[27px] overview-text">Total Expenses</h2>
+              <p className="mb-2 text-sm grey-text xl:text-[16px]">
                 Total amount you've spent on your contractors
               </p>
-
               <div className="flex justify-between bg-white border rounded-2xl py-3 px-[21px] xl:py-10 xl:px-16">
                 <div className="flex items-center gap-4">
                   <img src={moneybag} alt="" />
-                  <span className="text-2xl font-semibold leading-normal xl:text-[40px] overview-text">
-                    {formatCurrency(0, currencyCode, locale)}
+                  <span className="text-2xl font-semibold xl:text-[40px] overview-text">
+                    {formatCurrency(contracts?.totalExpenses || 0, currencyCode, locale)}
                   </span>
                 </div>
               </div>
@@ -88,21 +75,17 @@ const Overview = () => {
 
             {/* Active Contractors */}
             <div>
-              <h2 className="font-semibold leading-normal xl:text-[27px] overview-text">
-                Active Contractors
-              </h2>
-              <p className="mb-2 text-sm font-Inter font-medium leading-normal grey-text pr-[51px] xl:text-[16px]">
+              <h2 className="font-semibold xl:text-[27px] overview-text">Active Contractors</h2>
+              <p className="mb-2 text-sm grey-text xl:text-[16px]">
                 Current contractors on your team
               </p>
-
               <div className="flex justify-between bg-white border rounded-2xl py-3 px-[21px] xl:py-10 xl:px-16">
                 <div className="flex items-center gap-4">
                   <img src={people} alt="" />
-                  <span className="text-2xl font-semibold leading-normal xl:text-[40px] overview-text">
-                    0
+                  <span className="text-2xl font-semibold xl:text-[40px] overview-text">
+                    {contracts?.activeContractors || 0}
                   </span>
                 </div>
-
                 <Link
                   to="/dashboard/create-contract"
                   className="flex items-center text-[0.8rem] text-white px-3 py-[10px] sm:px-5 sm:py-[14px] pr-bg-clr shadow-xl rounded-lg font-semibold xl:text-[16px]"
@@ -115,20 +98,17 @@ const Overview = () => {
 
             {/* Onboarding */}
             <div>
-              <h2 className="font-semibold leading-normal xl:text-[27px] overview-text">
-                Onboarding
-              </h2>
-              <p className="mb-2 text-sm font-Inter font-medium leading-normal grey-text pr-[51px] xl:text-[16px]">
+              <h2 className="font-semibold xl:text-[27px] overview-text">Onboarding</h2>
+              <p className="mb-2 text-sm grey-text xl:text-[16px]">
                 Pending contracts on their way
               </p>
-
               <div className="flex justify-between items-center bg-white border rounded-2xl py-3 px-[21px] xl:py-10 xl:px-16 overview-text">
                 <div className="flex items-center gap-4">
-                  {onboardingCount === 0 && <img src={telegram} alt="" />}
-                  <span className="text-2xl font-semibold leading-normal xl:text-[40px]">
-                    {onboardingCount}
+                  {contracts?.onboardingCount === 0 && <img src={telegram} alt="" />}
+                  <span className="text-2xl font-semibold xl:text-[40px]">
+                    {contracts?.onboardingCount || 0}
                   </span>
-                  {onboardingCount > 0 && (
+                  {contracts?.onboardingCount > 0 && (
                     <span className="flex items-center relative">
                       <img
                         src={onboardIcon2}
@@ -157,7 +137,7 @@ const Overview = () => {
                     </span>
                   )}
                 </div>
-                {onboardingCount > 0 && (
+                {contracts?.onboardingCount > 0 && (
                   <p className="text-[12px] pl-5 py-[14px] rounded-lg font-medium xl:text-[20px] text-gray-700 transition-all duration-500 animate-pulse continuous-pulse hover:scale-105">
                     Working to onboard human
                   </p>
@@ -171,7 +151,6 @@ const Overview = () => {
         </div>
       </div>
 
-      {/* Add custom animation styles */}
       <style jsx>{`
         @keyframes fadeIn {
           from {
@@ -192,4 +171,3 @@ const Overview = () => {
 };
 
 export default Overview;
-
