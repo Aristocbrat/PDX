@@ -17,10 +17,10 @@ const Overview = () => {
   const [currencyCode, setCurrencyCode] = useState("USD");
   const [locale, setLocale] = useState("en-US");
 
-  const { data: contracts, isLoading } = useQuery(
-    ["user-contracts"],
-    getUserContracts
-  );
+  const { data: contracts, isLoading } = useQuery({
+    queryKey: ["user-contracts"],
+    queryFn: getUserContracts,
+  });
 
   useEffect(() => {
     const storedCode = localStorage.getItem("userCurrencyCode");
@@ -40,6 +40,7 @@ const Overview = () => {
       return () => clearTimeout(timer);
     }
   }, [contracts?.onboardingCount]);
+
   return (
     <section>
       <div>

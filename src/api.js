@@ -90,4 +90,10 @@ authFetch.interceptors.response.use(
   }
 );
 
+//  Named export for contract fetching
+export async function getUserContracts() {
+  const response = await authFetch.get("/contracts/get-user-contracts");
+  return response.data;
+}
+
 export default authFetch;
