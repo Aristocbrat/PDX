@@ -10,7 +10,7 @@ import useJobDetailsForm from '../../features/contracts/useJobDetailsForm';
 import { useSearchParams } from 'react-router-dom';
 import { formatISO } from 'date-fns';
 
-const FormTwo = ({ nextStep, savedState }) => {
+const FormTwo = ({ nextStep, savedState, username }) => {
   const [searchParams] = useSearchParams();
   const contractType = searchParams.get('contractType') || null;
   const { updateForm, sendingForm } = useJobDetailsForm();
@@ -20,22 +20,21 @@ const FormTwo = ({ nextStep, savedState }) => {
   const [settingTemplate, setSettingTemplate] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
- const validationSchema = Yup.object({
-  roleTitle: contractType === 'gig-based' 
-    ? Yup.string().required('Role title is required') 
-    : Yup.string().notRequired(),
+  const validationSchema = Yup.object({
+    roleTitle: contractType === 'gig-based'
+      ? Yup.string().required('Role title is required')
+      : Yup.string().notRequired(),
 
-  seniorityLevel: Yup.string().notRequired(),
-  scopeOfWork: Yup.string().notRequired(),
-  startDate: Yup.string().required('Start Date is required'),
+    seniorityLevel: Yup.string().notRequired(),
+    scopeOfWork: Yup.string().notRequired(),
+    startDate: Yup.string().required('Start Date is required'),
 
-  endDate: contractType === 'gig-based' 
-    ? Yup.string().required('End Date is required') 
-    : Yup.string().notRequired(),
+    endDate: contractType === 'gig-based'
+      ? Yup.string().required('End Date is required')
+      : Yup.string().notRequired(),
 
-  explanationOfScopeOfWork: Yup.string().notRequired(),
-});
-
+    explanationOfScopeOfWork: Yup.string().notRequired(),
+  });
 
   const initialValues = {
     roleTitle: savedState?.roleTitle || '',
@@ -63,6 +62,8 @@ const FormTwo = ({ nextStep, savedState }) => {
 
       updateForm(values, {
         onSuccess: () => {
+          //  Save job details per user
+          localStorage.setItem(`${username}_jobDetails`, JSON.stringify(values));
           nextStep();
         },
         onSettled: () => {
@@ -96,6 +97,7 @@ const FormTwo = ({ nextStep, savedState }) => {
     }
     setSettingTemplate(false);
   };
+
   return (
     <div className='flex flex-col gap-4'>
       <div className='space-y-1'>

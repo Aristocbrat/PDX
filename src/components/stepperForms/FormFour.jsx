@@ -14,23 +14,22 @@ const FormFour = ({
   setCurrentStep,
   signature,
   hasSignature,
+  username, //  Accept username as prop
 }) => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const contractType = searchParams.get("contractType") ?? "";
   const { finalize, sendingForm } = useFinalizeContract();
-  const [hasChanges, setHasChanges] = useState(false);
+  const [completionCount, setCompletionCount] = useState(0);
 
-  // Currency from localStorage
-  const currencyCode = localStorage.getItem("userCurrencyCode") || "USD";
+  //  Currency from user-specific localStorage
+  const currencyCode = localStorage.getItem(`${username}_userCurrencyCode`) || "USD";
   const locale = currencyCode === "NGN" ? "en-NG" : "en-US";
 
-  const getCompletionCount = () => {
-    const count = sessionStorage.getItem("contractCompletionCount");
-    return count ? parseInt(count) : 0;
-  };
-
-  const [completionCount, setCompletionCount] = useState(getCompletionCount());
+  useEffect(() => {
+    const count = sessionStorage.getItem(`${username}_contractCompletionCount`);
+    setCompletionCount(count ? parseInt(count) : 0);
+  }, [username]);
 
   const userInfo = [
     {
@@ -59,8 +58,7 @@ const FormFour = ({
     },
     {
       title: "Payment Rate",
-      data:
-        formatCurrency(savedState?.paymentRate || 0, currencyCode, locale) ?? "-",
+      data: formatCurrency(savedState?.paymentRate || 0, currencyCode, locale) ?? "-",
     },
     {
       title: "Payment Frequency",
@@ -74,10 +72,12 @@ const FormFour = ({
         // nextStep(); // Uncomment if you want to auto-advance
       },
     });
-    sessionStorage.removeItem("currentStep");
+
+    //  Clear user-specific step and update completion count
+    sessionStorage.removeItem(`${username}_currentStep`);
     const newCount = completionCount + 1;
     setCompletionCount(newCount);
-    sessionStorage.setItem("contractCompletionCount", newCount.toString());
+    sessionStorage.setItem(`${username}_contractCompletionCount`, newCount.toString());
   };
 
   return (

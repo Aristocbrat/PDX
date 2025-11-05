@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getUserContracts } from "../api"; // from your existing api.js
+import { getUserContracts } from "../api";
 import moneybag from "../assets/svg/moneybag.svg";
 import people from "../assets/svg/people.svg";
 import telegram from "../assets/svg/telegram.svg";
@@ -17,13 +17,15 @@ const Overview = () => {
   const [currencyCode, setCurrencyCode] = useState("USD");
   const [locale, setLocale] = useState("en-US");
 
+  // ✅ Fetch contracts filtered by username
   const { data: contracts, isLoading } = useQuery({
-    queryKey: ["user-contracts"],
-    queryFn: getUserContracts,
+    queryKey: ["user-contracts", username],
+    queryFn: () => getUserContracts(username),
   });
 
+  // ✅ Load user-specific currency
   useEffect(() => {
-    const storedCode = localStorage.getItem("userCurrencyCode");
+    const storedCode = localStorage.getItem(`${username}_userCurrencyCode`);
     if (storedCode === "NGN") {
       setCurrencyCode("NGN");
       setLocale("en-NG");
@@ -31,7 +33,7 @@ const Overview = () => {
       setCurrencyCode("USD");
       setLocale("en-US");
     }
-  }, []);
+  }, [username]);
 
   useEffect(() => {
     if ((contracts?.onboardingCount || 0) > 0) {
@@ -51,7 +53,6 @@ const Overview = () => {
         <div className="mx-[19px] mt-10">
           <h1 className="text-[20px] font-Inter font-bold leading-normal text-[#000000e6] xl:text-[30px]">
             Welcome, {username}
-            <span className="overview-text"></span>
           </h1>
           <p className="text-sm font-Inter font-medium leading-normal grey-text xl:text-[16px]">
             I hope you're having a good day!

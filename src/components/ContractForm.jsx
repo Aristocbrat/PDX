@@ -13,19 +13,27 @@ import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 
 const ContractForm = ({ subHead, endDate }) => {
-  const data = sessionStorage.getItem('currentStep');
-  const savedStep = JSON.parse(data);
-  const [currentStep, setCurrentStep] = useState(savedStep || 1);
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const contractType = searchParams.get('contractType');
-  const navigate = useNavigate();
   const { setFormStepperData } = useGlobalContext();
 
+  //  Get or generate a unique username
+  const username = sessionStorage.getItem('username') || generateTempUsername();
+  function generateTempUsername() {
+    const temp = `user_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    sessionStorage.setItem('username', temp);
+    return temp;
+  }
+
+  //  Load current step for this user
+  const savedStep = JSON.parse(sessionStorage.getItem(`${username}_currentStep`));
+  const [currentStep, setCurrentStep] = useState(savedStep || 1);
+
   const getCompletionCount = () => {
-    const count = sessionStorage.getItem('contractCompletionCount');
+    const count = sessionStorage.getItem(`${username}_contractCompletionCount`);
     return count ? parseInt(count) : 0;
   };
-
   const [completionCount, setCompletionCount] = useState(getCompletionCount());
 
   const handleOptionSelect = (option) => {
@@ -59,11 +67,11 @@ const ContractForm = ({ subHead, endDate }) => {
   const handlePrevious = useCallback(() => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
-      sessionStorage.setItem('currentStep', JSON.stringify(currentStep - 1));
+      sessionStorage.setItem(`${username}_currentStep`, JSON.stringify(currentStep - 1));
     } else {
       navigate('/dashboard/add-developer');
     }
-  }, [currentStep, navigate]);
+  }, [currentStep, navigate, username]);
 
   const validationSchema = Yup.object({
     scopeOfWork: Yup.string().required('Scope of work is required'),
@@ -82,93 +90,53 @@ const ContractForm = ({ subHead, endDate }) => {
     },
   });
 
-  const contract = sessionStorage.getItem('personal-info');
-  const savedState = JSON.parse(contract);
+  //  Load saved form data for this user
+  const contract = localStorage.getItem(`${username}_personalInfo`);
+  const savedState = contract ? JSON.parse(contract) : null;
 
   const nextStep = () => {
     const step = currentStep + 1;
     setCurrentStep(step);
-    sessionStorage.setItem('currentStep', JSON.stringify(step));
+    sessionStorage.setItem(`${username}_currentStep`, JSON.stringify(step));
   };
 
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return (
-          <FormOne
-            nextStep={nextStep}
-            contractType={contractType}
-            savedState={savedState}
-          />
-        );
+        return <FormOne nextStep={nextStep} contractType={contractType} savedState={savedState} username={username} />;
       case 2:
-        return (
-          <FormTwo
-            contractType={contractType}
-            nextStep={nextStep}
-            savedState={savedState}
-          />
-        );
+        return <FormTwo nextStep={nextStep} contractType={contractType} savedState={savedState} username={username} />;
       case 3:
-        return (
-          <FormThree
-            contractType={contractType}
-            nextStep={nextStep}
-            savedState={savedState}
-          />
-        );
+        return <FormThree nextStep={nextStep} contractType={contractType} savedState={savedState} username={username} />;
       case 4:
-        return (
-          <FormFour
-            nextStep={nextStep}
-            setCurrentStep={setCurrentStep}
-            savedState={savedState}
-            heading="Review and Sign Contract"
-          />
-        );
+        return <FormFour nextStep={nextStep} setCurrentStep={setCurrentStep} savedState={savedState} heading="Review and Sign Contract" username={username} />;
       case 5:
-        return (
-          <FormFive
-            savedState={savedState}
-            nextStep={nextStep}
-          />
-        );
+        return <FormFive
+         nextStep={nextStep}
+         savedState={savedState}
+          username={username} />;
       case 6:
-        return (
-          <FormFour
-            nextStep={nextStep}
-            savedState={savedState}
-            setCurrentStep={setCurrentStep}
-            heading="Review and Sign Contract"
-            signature={savedState.signature}
-            hasSignature={Boolean(savedState.signature)}
-          />
-        );
+        return <FormFour nextStep={nextStep}
+         savedState={savedState}
+          setCurrentStep={setCurrentStep}
+           heading="Review and Sign Contract" signature={savedState.signature} hasSignature={Boolean(savedState.signature)} username={username} />;
       default:
         return null;
     }
   };
+
   return (
     <section className="p-4 w-full flex flex-col gap-10 pt-10">
-      <div
-        className="flex items-center gap-1 text-sm font-medium leading-normal pr-text-clr xl:gap-3"
-        onClick={handlePrevious}
-      >
+      <div className="flex items-center gap-1 text-sm font-medium leading-normal pr-text-clr xl:gap-3" onClick={handlePrevious}>
         <FaArrowLeft size={18} />
         <span className="cursor-pointer">Go back</span>
       </div>
 
       <div className="flex flex-col gap-6">
         <div className="space-y-3">
-          <h3 className="text-xl leading-normal font-bold xl:text-[29px]">
-            Preparing a contract
-          </h3>
-          <p
-            className="text-[12px] font-medium leading-normal xl:w-[428px] xl:text-[16px]"
-            style={{ color: 'rgba(0, 0, 0, 0.60)' }}
-          >
-            Input the required details to customize your contract. Ensure all
-            fields are complete for accuracy.
+          <h3 className="text-xl leading-normal font-bold xl:text-[29px]">Preparing a contract</h3>
+          <p className="text-[12px] font-medium leading-normal xl:w-[428px] xl:text-[16px]" style={{ color: 'rgba(0, 0, 0, 0.60)' }}>
+            Input the required details to customize your contract. Ensure all fields are complete for accuracy.
           </p>
         </div>
 
@@ -177,13 +145,9 @@ const ContractForm = ({ subHead, endDate }) => {
           <div className="flex overview-expense-bg border-[2px] border-[#E1E2DD] mb-3 md:mb-0 rounded-2xl h-fit md:p-8 px-8 p-2 flex-shrink-0 lg:w-96 gap-4 md:flex-col md:order-2 items-center">
             {steps.map((step, i) => (
               <div key={i} className="flex w-full items-center gap-4">
-                <p
-                  className={`w-8 h-8 md:w-10 md:h-10 flex-shrink-0 flex items-center justify-center rounded-full ${
-                    currentStep >= i + 1
-                      ? 'bg-[#008000] text-white'
-                      : 'text-[#E1E2DD] ring-1 ring-[#E1E2DD]'
-                  }`}
-                >
+                <p className={`w-8 h-8 md:w-10 md:h-10 flex-shrink-0 flex items-center justify-center rounded-full ${
+                  currentStep >= i + 1 ? 'bg-[#008000] text-white' : 'text-[#E1E2DD] ring-1 ring-[#E1E2DD]'
+                }`}>
                   {i + 1}
                 </p>
                 <p className="hidden md:block text-center text-sm lg:text-base truncate font-medium leading-normal">
@@ -195,12 +159,7 @@ const ContractForm = ({ subHead, endDate }) => {
 
           {/* Form Container */}
           <div className="overview-expense-bg border-[2px] border-[#E1E2DD] p-10 w-full rounded-3xl">
-            <div>
-              <div>{renderStep()}</div>
-
-              {/* Optional: Add a unified button here if needed */}
-              {/* You can re-enable the commented buttons if you want to control submission manually */}
-            </div>
+            <div>{renderStep()}</div>
           </div>
         </div>
       </div>
@@ -209,4 +168,3 @@ const ContractForm = ({ subHead, endDate }) => {
 };
 
 export default ContractForm;
-

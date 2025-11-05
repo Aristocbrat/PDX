@@ -11,7 +11,7 @@ import usePersonalInfoContract from '../../features/contracts/usePersonalInfoCon
 import CustomForm from '../../ui/CustomForm';
 import CustomInput from '../../ui/CustomInput';
 
-const FormOne = ({ nextStep, savedState, contractType }) => {
+const FormOne = ({ nextStep, savedState, contractType, username }) => {
   const { countries, isLoading } = useGetCountries();
   const [hasChanges, setHasChanges] = useState(false);
   const [isCountryLocked, setIsCountryLocked] = useState(false);
@@ -56,32 +56,28 @@ const FormOne = ({ nextStep, savedState, contractType }) => {
         clientName: values?.clientName,
         email: values?.email,
         country: values?.country,
-        region: values?.state,
         companyName: values.companyName,
         contractType,
+        ...(values.state && { region: values.state }),
       };
 
       const isNigerian = values?.country?.toLowerCase() === 'nigeria';
-      localStorage.setItem('userCurrencyCode', isNigerian ? 'NGN' : 'USD');
-      localStorage.setItem('userPersonalInfo', JSON.stringify(details));
-      localStorage.setItem('countryLocked', 'true');
-      localStorage.setItem('stateLocked', 'true');
+      localStorage.setItem(`${username}_userCurrencyCode`, isNigerian ? 'NGN' : 'USD');
+      localStorage.setItem(`${username}_personalInfo`, JSON.stringify(details));
+      localStorage.setItem(`${username}_countryLocked`, 'true');
+      localStorage.setItem(`${username}_stateLocked`, 'true');
 
       postForm(details, {
-        onSuccess: () => {
-          nextStep();
-        },
-        onSettled: () => {
-          setSubmitting(false);
-        },
+        onSuccess: () => nextStep(),
+        onSettled: () => setSubmitting(false),
       });
     },
   });
 
   useEffect(() => {
-    const savedInfo = JSON.parse(localStorage.getItem("userPersonalInfo"));
-    const countryLocked = localStorage.getItem("countryLocked") === "true";
-    const stateLocked = localStorage.getItem("stateLocked") === "true";
+    const savedInfo = JSON.parse(localStorage.getItem(`${username}_personalInfo`));
+    const countryLocked = localStorage.getItem(`${username}_countryLocked`) === "true";
+    const stateLocked = localStorage.getItem(`${username}_stateLocked`) === "true";
 
     if (savedInfo) {
       formik.setValues((prev) => ({
@@ -92,7 +88,7 @@ const FormOne = ({ nextStep, savedState, contractType }) => {
 
     if (countryLocked) setIsCountryLocked(true);
     if (stateLocked) setIsStateLocked(true);
-  }, []);
+  }, [username]);
 
   useEffect(() => {
     const changesDetected = Object.keys(initialValues).some(
@@ -102,28 +98,29 @@ const FormOne = ({ nextStep, savedState, contractType }) => {
   }, [formik.values, initialValues]);
 
   const handleCountryChange = (e) => {
+    if (isCountryLocked) return;
     const selectedIso = e.target.value;
     const selected = countries?.find((c) => c.iso2 === selectedIso);
     if (selected) {
+      setSelectedCountry(selectedIso);
       formik.setFieldValue('country', selected.name);
       queryClient.invalidateQueries(['states']);
-      setSelectedCountry(selectedIso);
-
-      setIsCountryLocked(true);
-      localStorage.setItem('countryLocked', 'true');
 
       const isNigerian = selected.name.toLowerCase() === 'nigeria';
-      localStorage.setItem('userCurrencyCode', isNigerian ? 'NGN' : 'USD');
-    } else {
-      setSelectedCountry('');
+      localStorage.setItem(`${username}_userCurrencyCode`, isNigerian ? 'NGN' : 'USD');
+
+      setIsCountryLocked(true);
+      localStorage.setItem(`${username}_countryLocked`, 'true');
     }
   };
 
   const handleStateChange = (e) => {
+    if (isStateLocked) return;
     formik.setFieldValue('state', e.target.value);
     setIsStateLocked(true);
-    localStorage.setItem('stateLocked', 'true');
+    localStorage.setItem(`${username}_stateLocked`, 'true');
   };
+
   return (
     <div className='flex flex-col gap-5'>
       <div className='text-lg font-semibold leading-normal xl:text-2xl xl:mb-[18px]'>
@@ -177,9 +174,7 @@ const FormOne = ({ nextStep, savedState, contractType }) => {
               id='country'
               disabled={isLoading || formik.isSubmitting || sendingForm || isCountryLocked}
               onChange={handleCountryChange}
-              value={
-                countries?.find((c) => c.name === formik.values.country)?.iso2 || ''
-              }
+              value={countries?.find((c) => c.name === formik.values.country)?.iso2 || ''}
               className='appearance-none w-full disabled:ring-gray-300 bg-transparent ring-1 ring-[#00000033] outline-none rounded-lg p-3 text-sm'
             >
               <option value=''>
@@ -195,48 +190,64 @@ const FormOne = ({ nextStep, savedState, contractType }) => {
               {isCountryLocked ? <GiPadlock size={18} /> : <img src={dropdownarrow} alt='' />}
             </div>
           </div>
+          {isCountryLocked && (
+            <p className="text-xs text-gray-500 italic mt-1">
+              Country selection is locked after submission.
+            </p>
+          )}
         </div>
 
-        {/* State Dropdown */}
-        <div className='flex flex-col w-full gap-1 xl:gap-4'>
-          <label htmlFor='state' className='text-sm font-semibold leading-normal'>
-            Region/Province/State
-          </label>
-          <div className='relative'>
-            <select
-              name='state'
-              disabled={
-                loadingStates ||
-                !formik.values.country ||
-                formik.isSubmitting ||
-                sendingForm ||
-                !selectedCountry ||
-                isStateLocked
-              }
-              id='state'
-              onChange={handleStateChange}
-              value={formik.values.state}
-              className='appearance-none w-full disabled:ring-gray-300 bg-transparent ring-1 ring-[#00000033] outline-none rounded-lg p-3 text-sm'
-            >
-              <option value=''>
-                {loadingStates
-                  ? 'Loading States...'
-                  : states?.length === 0
-                  ? '-'
-                  : 'Select State'}
-              </option>
-              {states?.map((state) => (
-                <option key={state.id} value={state.name}>
-                  {state.name}
+        {/* State Dropdown — only show if states exist */}
+        {states?.length > 0 && (
+          <div className='flex flex-col w-full gap-1 xl:gap-4'>
+            <label htmlFor='state' className='text-sm font-semibold leading-normal'>
+              Region/Province/State
+            </label>
+            <div className='relative'>
+              <select
+                name='state'
+                disabled={
+                  loadingStates ||
+                  !formik.values.country ||
+                  formik.isSubmitting ||
+                  sendingForm ||
+                  !selectedCountry ||
+                  isStateLocked
+                }
+                id='state'
+                onChange={handleStateChange}
+                value={formik.values.state}
+                className='appearance-none w-full disabled:ring-gray-300 bg-transparent ring-1 ring-[#00000033] outline-none rounded-lg p-3 text-sm'
+              >
+                <option value=''>
+                  {loadingStates ? 'Loading States...' : 'Select State'}
                 </option>
-              ))}
-            </select>
-            <div className='absolute top-[50%] right-4 transform -translate-y-1/2 pointer-events-none text-gray-500'>
-              {isStateLocked ? <GiPadlock size={18} /> : <img src={dropdownarrow} alt='dropdown_icon' />}
+                {states.map((state) => (
+                  <option key={state.id} value={state.name}>
+                    {state.name}
+                  </option>
+                ))}
+              </select>
+              <div className='absolute top-[50%] right-4 transform -translate-y-1/2 pointer-events-none text-gray-500'>
+                {isStateLocked ? <GiPadlock size={18} /> : <img src={dropdownarrow} alt='dropdown_icon' />}
+              </div>
             </div>
+            {isStateLocked && (
+              <p className="text-xs text-gray-500 italic mt-1">
+                State selection is locked after submission.
+              </p>
+            )}
           </div>
-        </div>
+        )}
 
+        {/* Fallback message when no states are available */}
+        {states?.length === 0 && (
+          <p className="text-sm text-gray-500 italic mt-2">
+            No region/state required for your selected country.
+          </p>
+        )}
+
+        {/* Company Name */}
         {formik.values.country && (
           <CustomInput
             label='Company Name'
@@ -256,6 +267,7 @@ const FormOne = ({ nextStep, savedState, contractType }) => {
           Note: Your selected country will determine your default currency. Nigerian users will use <strong>₦ (Naira)</strong>, while all other users will use <strong>$ (USD)</strong>. This setting cannot be changed after submission.
         </p>
 
+        {/* Submit Button */}
         <div className="mt-4">
           <Button
             isLoading={formik.isSubmitting || sendingForm}

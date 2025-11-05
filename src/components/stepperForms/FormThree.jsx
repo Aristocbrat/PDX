@@ -7,28 +7,27 @@ import useCompensation from "../../features/contracts/useCompensation";
 import CustomForm from "../../ui/CustomForm";
 import Button from "../Button";
 
-const FormThree = ({ nextStep, savedState }) => {
+const FormThree = ({ nextStep, savedState, username }) => {
   const { updatePayment, isUpdating } = useCompensation();
   const [hasChanges, setHasChanges] = useState(false);
-
-  // 🔥 Currency symbol from localStorage
   const [currencySymbol, setCurrencySymbol] = useState("$");
 
+  //  Load currency symbol for this user
   useEffect(() => {
-    const storedCode = localStorage.getItem("userCurrencyCode");
+    const storedCode = localStorage.getItem(`${username}_userCurrencyCode`);
     setCurrencySymbol(storedCode === "NGN" ? "₦" : "$");
-  }, []);
+  }, [username]);
 
   //  Auto-fill from saved personal info
   useEffect(() => {
-    const savedInfo = JSON.parse(localStorage.getItem("userPersonalInfo"));
+    const savedInfo = JSON.parse(localStorage.getItem(`${username}_personalInfo`));
     if (savedInfo) {
       formik.setValues((prev) => ({
         ...prev,
         ...savedInfo,
       }));
     }
-  }, []);
+  }, [username]);
 
   const validationSchema = Yup.object({
     paymentRate: Yup.number().required("Amount is required"),
@@ -53,6 +52,12 @@ const FormThree = ({ nextStep, savedState }) => {
 
       updatePayment(values, {
         onSuccess: () => {
+          //  Save compensation data per user
+          const updated = {
+            ...JSON.parse(localStorage.getItem(`${username}_personalInfo`)),
+            ...values,
+          };
+          localStorage.setItem(`${username}_personalInfo`, JSON.stringify(updated));
           nextStep();
         },
         onSettled: () => {
