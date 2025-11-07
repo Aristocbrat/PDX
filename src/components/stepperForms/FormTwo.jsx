@@ -54,6 +54,13 @@ const FormTwo = ({ nextStep, savedState, username }) => {
     initialValues,
     enableReinitialize: true,
     onSubmit: (values, { setSubmitting }) => {
+      const mergedData = {
+        ...(JSON.parse(localStorage.getItem(`${username}_personalInfo`)) || {}),
+        ...values,
+      };
+
+      localStorage.setItem(`${username}_personalInfo`, JSON.stringify(mergedData));
+
       if (!hasChanges) {
         nextStep();
         setSubmitting(false);
@@ -62,8 +69,6 @@ const FormTwo = ({ nextStep, savedState, username }) => {
 
       updateForm(values, {
         onSuccess: () => {
-          //  Save job details per user
-          localStorage.setItem(`${username}_jobDetails`, JSON.stringify(values));
           nextStep();
         },
         onSettled: () => {

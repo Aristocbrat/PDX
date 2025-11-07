@@ -18,7 +18,7 @@ const ContractForm = ({ subHead, endDate }) => {
   const contractType = searchParams.get('contractType');
   const { setFormStepperData } = useGlobalContext();
 
-  //  Get or generate a unique username
+  // Generate or retrieve username
   const username = sessionStorage.getItem('username') || generateTempUsername();
   function generateTempUsername() {
     const temp = `user_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
@@ -26,7 +26,7 @@ const ContractForm = ({ subHead, endDate }) => {
     return temp;
   }
 
-  //  Load current step for this user
+  // Step management
   const savedStep = JSON.parse(sessionStorage.getItem(`${username}_currentStep`));
   const [currentStep, setCurrentStep] = useState(savedStep || 1);
 
@@ -90,9 +90,12 @@ const ContractForm = ({ subHead, endDate }) => {
     },
   });
 
-  //  Load saved form data for this user
-  const contract = localStorage.getItem(`${username}_personalInfo`);
-  const savedState = contract ? JSON.parse(contract) : null;
+  // Load saved form data dynamically based on current step
+  const [savedState, setSavedState] = useState(null);
+  useEffect(() => {
+    const contract = localStorage.getItem(`${username}_personalInfo`);
+    setSavedState(contract ? JSON.parse(contract) : null);
+  }, [currentStep, username]);
 
   const nextStep = () => {
     const step = currentStep + 1;
@@ -111,15 +114,9 @@ const ContractForm = ({ subHead, endDate }) => {
       case 4:
         return <FormFour nextStep={nextStep} setCurrentStep={setCurrentStep} savedState={savedState} heading="Review and Sign Contract" username={username} />;
       case 5:
-        return <FormFive
-         nextStep={nextStep}
-         savedState={savedState}
-          username={username} />;
+        return <FormFive nextStep={nextStep} savedState={savedState} username={username} />;
       case 6:
-        return <FormFour nextStep={nextStep}
-         savedState={savedState}
-          setCurrentStep={setCurrentStep}
-           heading="Review and Sign Contract" signature={savedState.signature} hasSignature={Boolean(savedState.signature)} username={username} />;
+        return <FormFour nextStep={nextStep} savedState={savedState} setCurrentStep={setCurrentStep} heading="Review and Sign Contract" signature={savedState?.signature} hasSignature={Boolean(savedState?.signature)} username={username} />;
       default:
         return null;
     }
