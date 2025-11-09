@@ -5,8 +5,9 @@ import { useFormik } from "formik";
 import useUploadSignature from "../../features/contracts/useUploadSignature";
 import Button from "../Button";
 import CustomForm from "../../ui/CustomForm";
+import toast from "react-hot-toast";
 
-const FormFive = ({ nextStep, username }) => {
+const FormFive = ({ nextStep, setSignatureFile }) => {
   const { uploadSignature, sendingForm } = useUploadSignature();
   const sigCanvas = useRef(null);
 
@@ -16,18 +17,19 @@ const FormFive = ({ nextStep, username }) => {
 
   const formik = useFormik({
     validationSchema,
-    initialValues: {
-      signature: null,
-    },
+    initialValues: { signature: null },
     onSubmit: (values, { setSubmitting }) => {
       const formData = new FormData();
       formData.append("signature", values.signature);
 
       uploadSignature(formData, {
         onSuccess: () => {
-          //  Save signature URL or flag for this user
-          localStorage.setItem(`${username}_signatureSaved`, "true");
+          setSignatureFile(values.signature);
+          toast.success("Signature uploaded successfully!");
           nextStep();
+        },
+        onError: () => {
+          toast.error(" Failed to upload signature.");
         },
         onSettled: () => {
           setSubmitting(false);
@@ -37,20 +39,24 @@ const FormFive = ({ nextStep, username }) => {
   });
 
   const saveSignature = () => {
-    const canvas = sigCanvas.current.getCanvas();
-    canvas.toBlob((blob) => {
-      const signatureFile = new File([blob], "signature.png", { type: "image/png" });
-      formik.setFieldValue("signature", signatureFile);
+    const canvas = sigCanvas.current?.getCanvas();
+    if (!canvas || sigCanvas.current.isEmpty()) {
+      formik.setFieldError("signature", "Please provide a signature.");
+      return;
+    }
 
-      //  Optionally store a preview or flag
-      localStorage.setItem(`${username}_signaturePreview`, canvas.toDataURL());
+    canvas.toBlob((blob) => {
+      const signatureFile = new File([blob], "signature.png", {
+        type: "image/png",
+      });
+      formik.setFieldValue("signature", signatureFile);
+      formik.handleSubmit();
     }, "image/png");
   };
 
   const clearSignature = () => {
-    sigCanvas.current.clear();
+    sigCanvas.current?.clear();
     formik.setFieldValue("signature", null);
-    localStorage.removeItem(`${username}_signaturePreview`);
   };
 
   return (
@@ -62,36 +68,29 @@ const FormFive = ({ nextStep, username }) => {
       <div className="bg-gray-50 h-[202px]">
         <SignatureCanvas
           ref={sigCanvas}
-          onBegin={() => console.log("started")}
-          onEnd={() => {
-            saveSignature();
-            console.log("ended");
-          }}
+          penColor="black"
           canvasProps={{
-            color: "white",
             className: "mx-auto",
             width: 400,
             height: 202,
           }}
         />
-
         <div className="flex justify-end my-4">
           <button onClick={clearSignature}>Clear</button>
         </div>
       </div>
 
-      <CustomForm onSubmit={formik.handleSubmit}>
+      <CustomForm onSubmit={(e) => e.preventDefault()}>
         <div className="mt-[50px] xl:mb-[66px] lg:flex lg:justify-center">
-          <div>
-            <Button
-              buttonType="submit"
-              disabled={formik.isSubmitting || sendingForm || !formik.isValid || !formik.dirty}
-              isLoading={sendingForm}
-              type="primary"
-            >
-              Use Signature
-            </Button>
-          </div>
+          <Button
+            buttonType="button"
+            disabled={formik.isSubmitting || sendingForm}
+            isLoading={sendingForm}
+            type="primary"
+            onClick={saveSignature}
+          >
+            Use Signature
+          </Button>
         </div>
       </CustomForm>
     </div>
