@@ -16,14 +16,12 @@ const authFetch = axios.create({
 // Request interceptor: adds auth token and handles caching
 authFetch.interceptors.request.use(
   (config) => {
-    // Attach Authorization token if available
     const storedUser = JSON.parse(localStorage.getItem("user"));
     const token = storedUser?.accessToken;
     if (token && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Cache GET requests (valid for 5 minutes)
     if (config.method?.toLowerCase() === "get") {
       const cacheKey = JSON.stringify({
         url: config.url,
@@ -72,13 +70,13 @@ authFetch.interceptors.response.use(
       console.error(
         "Error Response:",
         error.response.status,
-        error.response.config.url
+        error.response.config.url,
+        error.response.data
       );
     } else {
       console.error("Error:", error.message);
     }
 
-    // Retry once for non-timeout errors
     const originalRequest = error.config;
     if (error.code !== "ECONNABORTED" && !originalRequest._retry) {
       originalRequest._retry = true;
@@ -90,12 +88,17 @@ authFetch.interceptors.response.use(
   }
 );
 
-//  Named export for contract fetching with username filtering
-export async function getUserContracts(username) {
-  const response = await authFetch.get("/contracts/get-user-contracts", {
-    params: { username },
-  });
-  return response.data;
+// Updated to use userId instead of username
+export async function getUserContracts(userId) {
+  try {
+    const response = await authFetch.get("/contracts/get-user-contracts", {
+      params: { userId },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("getUserContracts failed:", error.response?.data || error.message);
+    throw error;
+  }
 }
 
 export default authFetch;

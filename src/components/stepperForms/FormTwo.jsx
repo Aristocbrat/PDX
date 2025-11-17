@@ -10,7 +10,7 @@ import useJobDetailsForm from '../../features/contracts/useJobDetailsForm';
 import { useSearchParams } from 'react-router-dom';
 import { formatISO } from 'date-fns';
 
-const FormTwo = ({ nextStep, savedState, username }) => {
+const FormTwo = ({ nextStep, savedState, username, userId }) => {
   const [searchParams] = useSearchParams();
   const contractType = searchParams.get('contractType') || null;
   const { updateForm, sendingForm } = useJobDetailsForm();
@@ -24,15 +24,12 @@ const FormTwo = ({ nextStep, savedState, username }) => {
     roleTitle: contractType === 'gig-based'
       ? Yup.string().required('Role title is required')
       : Yup.string().notRequired(),
-
     seniorityLevel: Yup.string().notRequired(),
     scopeOfWork: Yup.string().notRequired(),
     startDate: Yup.string().required('Start Date is required'),
-
     endDate: contractType === 'gig-based'
       ? Yup.string().required('End Date is required')
       : Yup.string().notRequired(),
-
     explanationOfScopeOfWork: Yup.string().notRequired(),
   });
 
@@ -67,7 +64,12 @@ const FormTwo = ({ nextStep, savedState, username }) => {
         return;
       }
 
-      updateForm(values, {
+      const payload = {
+        ...values,
+        userId, //  Include userId for backend filtering
+      };
+
+      updateForm(payload, {
         onSuccess: () => {
           nextStep();
         },

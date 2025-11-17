@@ -24,8 +24,8 @@ const FormFive = ({ nextStep, setSignatureFile }) => {
 
       uploadSignature(formData, {
         onSuccess: () => {
-          setSignatureFile(values.signature);
-          toast.success("Signature uploaded successfully!");
+          setSignatureFile(values.signature); //  Pass the file, not a URL
+          toast.success(" Signature uploaded successfully!");
           nextStep();
         },
         onError: () => {
@@ -50,7 +50,6 @@ const FormFive = ({ nextStep, setSignatureFile }) => {
         type: "image/png",
       });
       formik.setFieldValue("signature", signatureFile);
-      formik.handleSubmit();
     }, "image/png");
   };
 
@@ -68,11 +67,16 @@ const FormFive = ({ nextStep, setSignatureFile }) => {
       <div className="bg-gray-50 h-[202px]">
         <SignatureCanvas
           ref={sigCanvas}
-          penColor="black"
+          onBegin={() => console.log("started")}
+          onEnd={() => {
+            saveSignature();
+            console.log("ended");
+          }}
           canvasProps={{
             className: "mx-auto",
             width: 400,
             height: 202,
+            style: { backgroundColor: "white" },
           }}
         />
         <div className="flex justify-end my-4">
@@ -80,14 +84,18 @@ const FormFive = ({ nextStep, setSignatureFile }) => {
         </div>
       </div>
 
-      <CustomForm onSubmit={(e) => e.preventDefault()}>
+      <CustomForm onSubmit={formik.handleSubmit}>
         <div className="mt-[50px] xl:mb-[66px] lg:flex lg:justify-center">
           <Button
-            buttonType="button"
-            disabled={formik.isSubmitting || sendingForm}
+            buttonType="submit"
+            disabled={
+              formik.isSubmitting ||
+              sendingForm ||
+              !formik.isValid ||
+              !formik.dirty
+            }
             isLoading={sendingForm}
             type="primary"
-            onClick={saveSignature}
           >
             Use Signature
           </Button>

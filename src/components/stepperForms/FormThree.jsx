@@ -7,18 +7,18 @@ import useCompensation from "../../features/contracts/useCompensation";
 import CustomForm from "../../ui/CustomForm";
 import Button from "../Button";
 
-const FormThree = ({ nextStep, savedState, username }) => {
+const FormThree = ({ nextStep, savedState, username, userId }) => {
   const { updatePayment, isUpdating } = useCompensation();
   const [hasChanges, setHasChanges] = useState(false);
   const [currencySymbol, setCurrencySymbol] = useState("$");
 
-  //  Load currency symbol for this user
+  // Load currency symbol for this user
   useEffect(() => {
     const storedCode = localStorage.getItem(`${username}_userCurrencyCode`);
     setCurrencySymbol(storedCode === "NGN" ? "₦" : "$");
   }, [username]);
 
-  //  Auto-fill from saved personal info
+  // Auto-fill from saved personal info
   useEffect(() => {
     const savedInfo = JSON.parse(localStorage.getItem(`${username}_personalInfo`));
     if (savedInfo) {
@@ -50,9 +50,13 @@ const FormThree = ({ nextStep, savedState, username }) => {
         return;
       }
 
-      updatePayment(values, {
+      const payload = {
+        ...values,
+        userId, //  Include userId for backend filtering
+      };
+
+      updatePayment(payload, {
         onSuccess: () => {
-          //  Save compensation data per user
           const updated = {
             ...JSON.parse(localStorage.getItem(`${username}_personalInfo`)),
             ...values,

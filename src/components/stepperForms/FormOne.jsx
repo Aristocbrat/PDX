@@ -11,7 +11,7 @@ import usePersonalInfoContract from '../../features/contracts/usePersonalInfoCon
 import CustomForm from '../../ui/CustomForm';
 import CustomInput from '../../ui/CustomInput';
 
-const FormOne = ({ nextStep, savedState, contractType, username }) => {
+const FormOne = ({ nextStep, savedState, contractType, username,userId }) => {
   const { countries, isLoading } = useGetCountries();
   const [hasChanges, setHasChanges] = useState(false);
   const [isCountryLocked, setIsCountryLocked] = useState(false);
@@ -58,6 +58,7 @@ const FormOne = ({ nextStep, savedState, contractType, username }) => {
         country: values?.country,
         companyName: values.companyName,
         contractType,
+        userId,
         ...(values.state && { region: values.state }),
       };
 

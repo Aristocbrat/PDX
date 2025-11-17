@@ -16,7 +16,7 @@ const ContractForm = ({ subHead, endDate }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const contractType = searchParams.get('contractType');
-  const { setFormStepperData } = useGlobalContext();
+  const { setFormStepperData, currentUser } = useGlobalContext();
 
   // Generate or retrieve username
   const username = sessionStorage.getItem('username') || generateTempUsername();
@@ -24,6 +24,14 @@ const ContractForm = ({ subHead, endDate }) => {
     const temp = `user_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     sessionStorage.setItem('username', temp);
     return temp;
+  }
+
+  // Get userId from auth context or fallback
+  const userId = currentUser?.id || sessionStorage.getItem('userId') || generateTempUserId();
+  function generateTempUserId() {
+    const id = `uid_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    sessionStorage.setItem('userId', id);
+    return id;
   }
 
   // Step management
@@ -106,17 +114,68 @@ const ContractForm = ({ subHead, endDate }) => {
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <FormOne nextStep={nextStep} contractType={contractType} savedState={savedState} username={username} />;
+        return (
+          <FormOne
+            nextStep={nextStep}
+            savedState={savedState}
+            contractType={contractType}
+            username={username}
+            userId={userId}
+          />
+        );
       case 2:
-        return <FormTwo nextStep={nextStep} contractType={contractType} savedState={savedState} username={username} />;
+        return (
+          <FormTwo
+            nextStep={nextStep}
+            contractType={contractType}
+            savedState={savedState}
+            username={username}
+            userId={userId}
+          />
+        );
       case 3:
-        return <FormThree nextStep={nextStep} contractType={contractType} savedState={savedState} username={username} />;
+        return (
+          <FormThree
+            nextStep={nextStep}
+            contractType={contractType}
+            savedState={savedState}
+            username={username}
+            userId={userId}
+          />
+        );
       case 4:
-        return <FormFour nextStep={nextStep} setCurrentStep={setCurrentStep} savedState={savedState} heading="Review and Sign Contract" username={username} />;
+        return (
+          <FormFour
+            nextStep={nextStep}
+            setCurrentStep={setCurrentStep}
+            savedState={savedState}
+            heading="Review and Sign Contract"
+            username={username}
+            userId={userId}
+          />
+        );
       case 5:
-        return <FormFive nextStep={nextStep} savedState={savedState} username={username} />;
+        return (
+          <FormFive
+            nextStep={nextStep}
+            savedState={savedState}
+            username={username}
+            userId={userId}
+          />
+        );
       case 6:
-        return <FormFour nextStep={nextStep} savedState={savedState} setCurrentStep={setCurrentStep} heading="Review and Sign Contract" signature={savedState?.signature} hasSignature={Boolean(savedState?.signature)} username={username} />;
+        return (
+          <FormFour
+            nextStep={nextStep}
+            savedState={savedState}
+            setCurrentStep={setCurrentStep}
+            heading="Review and Sign Contract"
+            signature={savedState?.signature}
+            hasSignature={Boolean(savedState?.signature)}
+            username={username}
+            userId={userId}
+          />
+        );
       default:
         return null;
     }
