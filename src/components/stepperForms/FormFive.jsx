@@ -24,12 +24,12 @@ const FormFive = ({ nextStep, setSignatureFile }) => {
 
       uploadSignature(formData, {
         onSuccess: () => {
-          setSignatureFile(values.signature); //  Pass the file, not a URL
-          toast.success(" Signature uploaded successfully!");
+          setSignatureFile(values.signature); // Pass file to FormFour
+          toast.success("Signature uploaded successfully!");
           nextStep();
         },
         onError: () => {
-          toast.error(" Failed to upload signature.");
+          toast.error("Failed to upload signature.");
         },
         onSettled: () => {
           setSubmitting(false);
@@ -50,6 +50,7 @@ const FormFive = ({ nextStep, setSignatureFile }) => {
         type: "image/png",
       });
       formik.setFieldValue("signature", signatureFile);
+      setSignatureFile(signatureFile); //  Keep FormFour in sync
     }, "image/png");
   };
 
@@ -88,6 +89,7 @@ const FormFive = ({ nextStep, setSignatureFile }) => {
         <div className="mt-[50px] xl:mb-[66px] lg:flex lg:justify-center">
           <Button
             buttonType="submit"
+            onClick={saveSignature} //  Ensure signature is saved before submit
             disabled={
               formik.isSubmitting ||
               sendingForm ||
